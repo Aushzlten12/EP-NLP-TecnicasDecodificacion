@@ -1,20 +1,23 @@
 # Bitácora Sprint 1: Setup y Mini-Transformer
 
-**Inicio:** [YYYY-MM-DD HH:MM] **Equipo/Miembro:** [Nombres]
+**Inicio:** 2025-10-20 22:25 **Equipo/Miembro:** Jose Pachas
 
 ## Comandos
 
-- [YYYY-MM-DD HH:MM] `make data` -> Corpus (SHA256 en `out/corpus_sha256.txt`)
-- [YYYY-MM-DD HH:MM] `pytest tests/test_transformer.py` -> 5/5 (cov=75%)
+- [2025-10-20 22:25] `make data` -> Corpus generado correctamente (`out/corpus.txt`, `out/seed.txt`, `out/corpus_sha256.txt`)
+- [2025-10-20 22:27] `make verify-corpus` -> Hash verificado ✅ (`HGEN == HSAVED`)
+- [2025-10-20 22:30] `make tokenize` -> Tokenización estable (`out/tokens.jsonl`, `out/vocab.txt`, `out/tokenizer_meta.json`)
 
 ## AAA/RGR (ejemplo)
 
-- **Arrange**: secuencia=128, máscara causal ON
-- **Act**: aplicar atención
-- **Assert**: logits futuras anuladas => (falló) índice corregido => (verde)
+- **Arrange**: secuencia=64, máscara causal pendiente de prueba
+- **Act**: aplicar tokenización determinista
+- **Assert**: hashes idénticos tras segunda ejecución (`make test-idem`) => (verde)
 
 ## Métricas
 
-- Perplexity baseline: 10.3 (RoPE)
+- Corpus reproducible (hash estable)
+- Tokenizer determinista y cache por timestamps funcional
+- Próximo paso: integrar bloque Mini-Transformer
 
-**Fin:** [YYYY-MM-DD HH:MM]
+**Fin:** 2025-10-20 22:45

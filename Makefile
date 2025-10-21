@@ -17,7 +17,9 @@ DIM ?= 128
 
 deps:
 	@echo "Verificando dependencias preinstaladas (stdlib, numpy, torch opcional)"
-	python -c "import numpy; try: import torch; except: print('Torch no disponible')" || true
+	python -c "import importlib.util as u; \
+print('NUMPY OK' if u.find_spec('numpy') else 'NUMPY no disponible'); \
+print('TORCH OK' if u.find_spec('torch') else 'Torch no disponible')" || true
 
 build:
 	@echo "Chequeos básicos"
@@ -25,20 +27,10 @@ build:
 	# ruff check src/*.py || true
 	mkdir -p out dist
 
-data:
-	@echo "Generando corpus sintético"
-	./tools/gen_corpus.sh $(SEED) $(SALT) > out/corpus.txt
-	echo "Comando: ./tools/gen_corpus.sh $(SEED) $(SALT)" > out/seed.txt
-	sha256sum out/corpus.txt | awk '{print $$1}' > out/corpus_sha256.txt
-
 verify-corpus:
 	@echo "Verificando hash del corpus"
 	HGEN="$$(./tools/gen_corpus.sh $(SEED) $(SALT) | sha256sum | awk '{print $$1}')"; \
 	HSAVED="$$(cat out/corpus_sha256.txt)"; test "$$HGEN" = "$$HSAVED"
-
-tokenize: data
-	@echo "Tokenizando corpus"
-	python src/tokenizer.py out/corpus.txt --output out/tokens.jsonl --vocab out/vocab.txt
 
 train: tokenize
 	@echo "Entrenando modelo"
@@ -73,25 +65,15 @@ test-idem:
 pack: eval bench plot
 	@echo "Capturando entorno"
 	{ \
-	  echo "DATE=$$(date -u +%FT%TZ)"; \
-	  python - <<'PY' || true
-import platform, sys
-print("PYTHON", sys.version.replace("\n"," "))
-try:
-    import numpy as np; print("NUMPY", np.__version__)
-except Exception: print("NUMPY none")
-try:
-    import torch; print("TORCH", torch.__version__)
-except Exception: print("TORCH none")
-print("PLATFORM", platform.platform())
-PY
+		echo "DATE=$$(date -u +%FT%TZ)"; \
+		python tools/dump_env.py || true; \
 	} > out/env.txt
 	@echo "Empaquetando artefactos reproducibles"
 	find out -type f -print0 | xargs -0 touch -d "@$(SOURCE_DATE_EPOCH)"
 	rm -f dist/proy-v1.0.0.tar.gz
 	tar --sort=name --mtime="@$(SOURCE_DATE_EPOCH)" --owner=0 --group=0 --numeric-owner \
-	    -czf dist/proy-v1.0.0.tar.gz out/ \
-	    --exclude='out/session.typescript' --exclude='out/terminal.cast' --exclude='out/*.png~'
+			-czf dist/proy-v1.0.0.tar.gz out/ \
+			--exclude='out/session.typescript' --exclude='out/terminal.cast' --exclude='out/*.png~'
 	sha256sum dist/proy-v1.0.0.tar.gz | awk '{print $$1"  "$$2}' > out/HASHES.md
 
 verify:
@@ -108,3 +90,20 @@ clean:
 
 distclean: clean
 	rm -rf out/* dist/* CHANGELOG.md
+
+# --- Reglas con archivos (cache por mtime) ---
+
+out/corpus.txt: tools/gen_corpus.sh Makefile
+	./tools/gen_corpus.sh $(SEED) $(SALT) > out/corpus.txt
+	echo "./tools/gen_corpus.sh $(SEED) $(SALT)" > out/seed.txt
+	sha256sum out/corpus.txt | awk '{print $$1}' > out/corpus_sha256.txt
+
+# Un “stamp” para agrupar dos salidas producidas por el mismo comando
+out/.tokenized: out/corpus.txt src/tokenizer.py
+	python src/tokenizer.py out/corpus.txt --output out/tokens.jsonl --vocab out/vocab.txt --seq-len 64
+	touch out/.tokenized
+
+# Alias phony que dependen de los archivos
+.PHONY: data tokenize
+data: out/corpus.txt
+tokenize: out/.tokenized

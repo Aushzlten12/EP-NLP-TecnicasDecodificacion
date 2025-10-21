@@ -1,0 +1,6 @@
+{
+  "input_sha256": "58f931bf82a67def4a86a758af7c9570379b3fae26d0bb8a8a31b24becb57b47",
+  "seq_len": 64,
+  "ntokens": 50000,
+  "nvocab": 1003
+}

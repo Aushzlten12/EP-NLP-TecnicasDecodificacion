@@ -1,29 +1,49 @@
-import argparse, json, re, sys, hashlib
+import argparse, json, sys, hashlib, os
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("input")
-    ap.add_argument("--output", required=True)
-    ap.add_argument("--vocab", required=True)
+    ap.add_argument("--output", required=True)  # out/tokens.jsonl
+    ap.add_argument("--vocab", required=True)  # out/vocab.txt
+    ap.add_argument("--seq-len", type=int, default=64)
     args = ap.parse_args()
 
-    txt = open(args.input, "r", encoding="utf-8").read()
-    # tokenizer simple por espacios (stub); determinista
-    toks = txt.strip().split()
+    with open(args.input, "r", encoding="utf-8") as f:
+        txt = f.read().strip()
 
-    # vocabulario mínimo (top-N palabras)
+    toks = txt.split()
+
+    # Vocab determinista
     vocab = sorted(set(toks))
-    with open(args.vocab, "w", encoding="utf-8") as f:
-        for v in vocab:
-            f.write(v + "\n")
+    specials = ["<pad>", "<bos>", "<eos>"]
+    vocab = specials + vocab
 
-    # emite JSONL de tokens (uno por "línea" lógica)
-    with open(args.output, "w", encoding="utf-8") as f:
-        # corta en bloques de 64 para simular "secuencias"
-        for i in range(0, len(toks), 64):
-            seq = toks[i : i + 64]
-            f.write(json.dumps({"tokens": seq}) + "\n")
+    # Vocab: una palabra por línea (termina con \n)
+    with open(args.vocab, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(vocab) + "\n")
+
+    # Mapa a IDs fijado
+    stoi = {w: i for i, w in enumerate(vocab)}
+
+    # JSONL determinista
+    with open(args.output, "w", encoding="utf-8", newline="\n") as f:
+        for i in range(0, len(toks), args.seq_len):
+            seq = toks[i : i + args.seq_len]
+            ids = [stoi[t] for t in seq]
+            rec = {"tokens": seq, "ids": ids}
+            f.write(json.dumps(rec, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+    # Metadatos
+    meta = {
+        "input_sha256": hashlib.sha256(txt.encode("utf-8")).hexdigest(),
+        "seq_len": args.seq_len,
+        "ntokens": len(toks),
+        "nvocab": len(vocab),
+    }
+    os.makedirs("out", exist_ok=True)
+    with open("out/tokenizer_meta.json", "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(meta, ensure_ascii=False, indent=2) + "\n")
 
 
 if __name__ == "__main__":
