@@ -1,0 +1,13 @@
+*/__pycache__/
+.vscode/
+
+# Modelos y pesos
+dist/
+*.tar.gz
+
+# Archivos temporales
+*.log
+*.tmp
+*.bak
+
+
