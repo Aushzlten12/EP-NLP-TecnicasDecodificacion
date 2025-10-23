@@ -10,7 +10,7 @@ def test_make_targets_end_to_end():
     subprocess.check_call(["make", "tokenize"])
     assert os.path.exists("out/tokens.jsonl")
     assert os.path.exists("out/vocab.txt")
-
+    
     subprocess.check_call(["make", "train"])
     assert os.path.exists("dist/model.tar.gz")
 
