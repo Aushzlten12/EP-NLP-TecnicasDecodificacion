@@ -1,0 +1,8 @@
+strategy,avg_time
+greedy,0.0983
+topk_10,0.1380
+topk_50,0.1660
+topp_0.9,0.1370
+topp_0.8,0.1203
+beam3,0.3491
+beam5,0.5470

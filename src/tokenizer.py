@@ -14,19 +14,19 @@ def main():
 
     toks = txt.split()
 
-    # Vocab determinista
+    # Vocab
     vocab = sorted(set(toks))
     specials = ["<pad>", "<bos>", "<eos>"]
     vocab = specials + vocab
 
-    # Vocab: una palabra por línea (termina con \n)
+    # Vocab
     with open(args.vocab, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(vocab) + "\n")
 
-    # Mapa a IDs fijado
+    # Mapa a IDs
     stoi = {w: i for i, w in enumerate(vocab)}
 
-    # JSONL determinista
+    # JSON determinista
     with open(args.output, "w", encoding="utf-8", newline="\n") as f:
         for i in range(0, len(toks), args.seq_len):
             seq = toks[i : i + args.seq_len]

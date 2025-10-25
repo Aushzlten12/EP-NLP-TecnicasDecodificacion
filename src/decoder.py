@@ -6,7 +6,6 @@ import torch.nn.functional as F
 
 # Técnicas de decodificación
 @torch.no_grad()
-@torch.no_grad()
 def generate(
     self,
     idx,
@@ -20,7 +19,7 @@ def generate(
     collected_probs = []
     for _ in range(max_new_tokens):
         logits = self(idx)
-        logits = logits[:, -1, :] / temperature  # Aplicar la temperatura
+        logits = logits[:, -1, :] / temperature  # temperatura aplicada
 
         probs = F.softmax(logits, dim=-1)
         if return_probs:
@@ -58,7 +57,7 @@ def generate(
 
 @torch.no_grad()
 def beam_search(model, idx, max_new_tokens, beam_width=3, length_penalty=1.0):
-    sequences = [(idx, 0)]  # Cada item: (tokens, log_prob acumulado)
+    sequences = [(idx, 0)]  # Cada item (tokens, log_prob_acumulado)
 
     for _ in range(max_new_tokens):
         all_candidates = []
@@ -71,13 +70,13 @@ def beam_search(model, idx, max_new_tokens, beam_width=3, length_penalty=1.0):
             for i in range(beam_width):
                 next_token = topk_indices[0, i].unsqueeze(0).unsqueeze(0)
                 new_seq = torch.cat([seq, next_token], dim=1)
-                # Penalización por longitud (evita que los beams colapsen a respuestas muy cortas)
+                # Penalización por longitud evita que beams de respuestas cortas
                 new_score = score + topk_probs[0, i].item() / (
                     len(new_seq) ** length_penalty
                 )
                 all_candidates.append((new_seq, new_score))
 
-        # Ordenar y mantener los mejores `beam_width`
+        # Ordenar y mantener los mejores
         sequences = sorted(all_candidates, key=lambda x: x[1], reverse=True)[
             :beam_width
         ]
@@ -96,7 +95,7 @@ class DecoderOnlyBlock(nn.Module):
         super().__init__()
         self.attn = transformer.MultiHeadAttentionBlock(d_model, n_heads, dropout)
         self.ff = transformer.FeedForwardBlock(d_model, d_ff, dropout)
-        self.res1 = transformer.ResidualConnection(d_model, dropout)  # Pre-LN
+        self.res1 = transformer.ResidualConnection(d_model, dropout)
         self.res2 = transformer.ResidualConnection(d_model, dropout)
 
     def forward(self, x, attn_mask):
@@ -128,7 +127,7 @@ class DecoderOnlyLM(nn.Module):
         if tie_weights:
             self.lm_head.weight = self.tok.embedding.weight
 
-    def forward(self, idx):  # idx: (batch,seq_len)
+    def forward(self, idx):  # (batch,seq_len)
         B, L = idx.size()
         x = self.pos(self.tok(idx))
         mask = causal_mask(L, idx.device)  # (1,1,seq_len,seq_len)

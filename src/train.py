@@ -53,7 +53,7 @@ def main():
         dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_batch
     )
 
-    # Obtener vocab size desde archivo
+    # Obtener vocab size
     vocab_size = sum(1 for _ in open("out/vocab.txt", encoding="utf-8"))
 
     # Modelo
@@ -87,7 +87,7 @@ def main():
         avg_loss = total_loss / len(loader)
         print(f"[{time.strftime('%H:%M:%S')}] Epoch {epoch+1}: loss = {avg_loss:.4f}")
 
-    # Serializar el modelo y metadatos
+    # Metadatos
     buffer = io.BytesIO()
     torch.save(model.state_dict(), buffer)
     buffer.seek(0)

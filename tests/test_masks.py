@@ -8,8 +8,7 @@ def make_causal_mask(L, device="cpu"):
 def test_causal_mask_blocks_future():
     L = 4
     mask = make_causal_mask(L)
-    # Posiciones futuras deben ser True (bloqueadas)
-    # Verificamos manualmente diagonal superior
+    # verificar la diagonal del tensor , la diagonal superior
     expected = torch.tensor(
         [
             [0, 1, 1, 1],

@@ -1,5 +1,5 @@
 # Makefile para el proyecto CC0c2
-# Uso: make [target]
+
 
 .PHONY: deps build data tokenize train eval bench plot pack verify verify-corpus tag test test-idem clean distclean
 
@@ -9,7 +9,7 @@ SEED ?= 42
 SALT ?= 1a2b3c4d5e6f7890abcdef1234567890
 SEED_BENCH ?= 42
 
-# Hiperparámetros por defecto
+# Hiperparámetros 
 CONTEXT ?= 512
 LR ?= 0.001
 HEADS ?= 4
@@ -71,14 +71,18 @@ pack: eval bench plot
 	@echo "Empaquetando artefactos reproducibles"
 	find out -type f -print0 | xargs -0 touch -d "@$(SOURCE_DATE_EPOCH)"
 	rm -f dist/proy-v1.0.0.tar.gz
+	# Usar comillas para las rutas y manejar los patrones de exclusión correctamente
 	tar --sort=name --mtime="@$(SOURCE_DATE_EPOCH)" --owner=0 --group=0 --numeric-owner \
-			-czf dist/proy-v1.0.0.tar.gz out/ \
-			--exclude='out/session.typescript' --exclude='out/terminal.cast' --exclude='out/*.png~'
-	sha256sum dist/proy-v1.0.0.tar.gz | awk '{print $$1"  "$$2}' > out/HASHES.md
+		-czf dist/proy-v1.0.0.tar.gz --exclude="out/session.typescript" --exclude="out/terminal.cast" --exclude="out/*.png~" out/
+	# Corregir el uso del comando sha256sum para evitar el asterisco
+	sha256sum dist/proy-v1.0.0.tar.gz | awk '{print $$1 "  dist/proy-v1.0.0.tar.gz"}' > out/HASHES.md
+
+
 
 verify:
 	@echo "Verificando hash del paquete"
-	sha256sum -c out/HASHES.md
+	sha256sum -c out/HASHES.md  
+
 
 tag:
 	@echo "Creando tag simulado"
@@ -91,19 +95,19 @@ clean:
 distclean: clean
 	rm -rf out/* dist/* CHANGELOG.md
 
-# --- Reglas con archivos (cache por mtime) ---
+# cache
 
 out/corpus.txt: tools/gen_corpus.sh Makefile
 	./tools/gen_corpus.sh $(SEED) $(SALT) > out/corpus.txt
 	echo "./tools/gen_corpus.sh $(SEED) $(SALT)" > out/seed.txt
 	sha256sum out/corpus.txt | awk '{print $$1}' > out/corpus_sha256.txt
 
-# Un “stamp” para agrupar dos salidas producidas por el mismo comando
+# Un “stamp” para agrupar dos salidas producidas
 out/.tokenized: out/corpus.txt src/tokenizer.py
 	python src/tokenizer.py out/corpus.txt --output out/tokens.jsonl --vocab out/vocab.txt --seq-len 64
 	touch out/.tokenized
 
-# Alias phony que dependen de los archivos
+# Alias 
 .PHONY: data tokenize
 data: out/corpus.txt
 tokenize: out/.tokenized

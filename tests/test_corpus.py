@@ -6,7 +6,7 @@ def read(p):
 
 
 def test_corpus_reproducible(tmp_path):
-    # Re-ejecuta gen_corpus y compara hash con out/corpus_sha256.txt
+    # compara hash con out/corpus_sha256.txt
     sha_saved = read("out/corpus_sha256.txt")
     out = subprocess.check_output(
         ["./tools/gen_corpus.sh", "42", "1a2b3c4d5e6f7890abcdef1234567890"]

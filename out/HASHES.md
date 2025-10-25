@@ -1,0 +1,1 @@
+aa17db61124cbe18a7e89fae444a6b353bf3b0051466fc0be26f5acb1e5b6583  dist/proy-v1.0.0.tar.gz
