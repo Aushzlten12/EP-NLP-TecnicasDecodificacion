@@ -2,6 +2,8 @@ import argparse, json, tarfile, os
 import torch
 import torch.nn.functional as F
 from decoder import build_decoder_only, generate, beam_search
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def load_model_from_tar(path):
@@ -38,7 +40,7 @@ def compute_metrics(samples, logits_per_step=None):
         tokens = tuple(seq)
         lengths.append(len(tokens))
         seen = set()
-        for n in range(1, 4):
+        for n in range(1, 4):  # Para 1-gramas, 2-gramas y 3-gramas
             for i in range(len(tokens) - n + 1):
                 ngram = tokens[i : i + n]
                 ngrams_total += 1
@@ -49,7 +51,7 @@ def compute_metrics(samples, logits_per_step=None):
 
     if logits_per_step:
         for probs in logits_per_step:
-            surprises.append(entropy(probs))
+            surprises.append(entropy(probs))  # Calcula la entropía
 
     return {
         "repetition": repeated / ngrams_total if ngrams_total else 0.0,
@@ -146,6 +148,119 @@ def main():
             f.write(
                 f"| {m['strategy']} | {m['repetition']:.2f} | {m['diversity']:.2f} | {m['length_avg']:.1f} | {m['surprise_avg']:.2f} |\n"
             )
+
+    metrics_df = pd.read_csv("out/metrics_decode.csv")
+
+    # Colores personalizados para las estrategias
+    colors = {
+        "greedy": "blue",
+        "topk_10": "orange",
+        "topk_50": "green",
+        "topp_0.9": "red",
+        "topp_0.8": "purple",
+        "beam3": "brown",
+        "beam5": "pink",
+    }
+
+    # Crear figura
+    plt.figure(figsize=(8, 6))
+
+    # Crear puntos en el gráfico con mayor tamaño y borde
+    for strategy in metrics_df["strategy"].unique():
+        subset = metrics_df[metrics_df["strategy"] == strategy]
+        plt.scatter(
+            subset["diversity"],
+            subset["repetition"],
+            label=strategy,
+            s=150,  # Aumentar tamaño de los puntos
+            c=colors[strategy],  # Asignar color según la estrategia
+            edgecolor="black",  # Bordes para mayor contraste
+            linewidth=1,  # Borde más grueso
+        )
+
+    # Etiquetas y título
+    plt.xlabel("Diversidad", fontsize=12)
+    plt.ylabel("Repetición", fontsize=12)
+    plt.title("Repetición vs Diversidad por Estrategia", fontsize=14)
+
+    # Agregar la leyenda
+    plt.legend(fontsize=10, loc="upper left")
+
+    # Mostrar la cuadrícula
+    plt.grid(True, linestyle="--", alpha=0.5)
+
+    # Guardar y mostrar gráfico
+    plt.savefig("out/repetition_vs_diversity.png", dpi=300)
+    plt.show()
+
+    # Gráfico de Repetición vs Longitud Media
+    plt.figure(figsize=(8, 6))
+
+    for strategy in metrics_df["strategy"].unique():
+        subset = metrics_df[metrics_df["strategy"] == strategy]
+        plt.scatter(
+            subset["length_avg"],
+            subset["repetition"],
+            label=strategy,
+            s=150,
+            c=colors[strategy],
+            edgecolor="black",
+            linewidth=1,
+        )
+
+    plt.xlabel("Longitud Promedio", fontsize=12)
+    plt.ylabel("Repetición", fontsize=12)
+    plt.title("Repetición vs Longitud Media por Estrategia", fontsize=14)
+    plt.legend(fontsize=10, loc="upper left")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.savefig("out/repetition_vs_length_avg.png", dpi=300)
+    plt.show()
+
+    # Gráfico de Diversidad vs Sorpresa Media
+    plt.figure(figsize=(8, 6))
+
+    for strategy in metrics_df["strategy"].unique():
+        subset = metrics_df[metrics_df["strategy"] == strategy]
+        plt.scatter(
+            subset["diversity"],
+            subset["surprise_avg"],
+            label=strategy,
+            s=150,
+            c=colors[strategy],
+            edgecolor="black",
+            linewidth=1,
+        )
+
+    plt.xlabel("Diversidad", fontsize=12)
+    plt.ylabel("Sorpresa Media", fontsize=12)
+    plt.title("Diversidad vs Sorpresa Media por Estrategia", fontsize=14)
+    plt.legend(fontsize=10, loc="upper left")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.savefig("out/diversity_vs_surprise_avg.png", dpi=300)
+    plt.show()
+
+    # Gráfico de Longitud Media vs Sorpresa Media
+    plt.figure(figsize=(8, 6))
+
+    for strategy in metrics_df["strategy"].unique():
+        subset = metrics_df[metrics_df["strategy"] == strategy]
+        plt.scatter(
+            subset["length_avg"],
+            subset["surprise_avg"],
+            label=strategy,
+            s=150,
+            c=colors[strategy],
+            edgecolor="black",
+            linewidth=1,
+        )
+
+    plt.xlabel("Longitud Promedio", fontsize=12)
+    plt.ylabel("Sorpresa Media", fontsize=12)
+    plt.title("Longitud Media vs Sorpresa Media por Estrategia", fontsize=14)
+    plt.legend(fontsize=10, loc="upper left")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.savefig("out/length_avg_vs_surprise_avg.png", dpi=300)
+    plt.show()
 
 
 if __name__ == "__main__":

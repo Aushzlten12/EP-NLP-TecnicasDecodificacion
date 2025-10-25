@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 # Técnicas de decodificación
 @torch.no_grad()
+@torch.no_grad()
 def generate(
     self,
     idx,
@@ -17,10 +18,9 @@ def generate(
     return_probs=False,
 ):
     collected_probs = []
-
     for _ in range(max_new_tokens):
         logits = self(idx)
-        logits = logits[:, -1, :] / temperature
+        logits = logits[:, -1, :] / temperature  # Aplicar la temperatura
 
         probs = F.softmax(logits, dim=-1)
         if return_probs:
@@ -38,7 +38,6 @@ def generate(
                 mask = cum_probs > top_p
                 mask[..., 0] = False
                 sorted_probs[mask] = 0.0
-
                 total = sorted_probs.sum(dim=-1, keepdim=True)
                 if (total == 0).any():
                     next_token = sorted_indices[:, :1]
@@ -58,8 +57,8 @@ def generate(
 
 
 @torch.no_grad()
-def beam_search(model, idx, max_new_tokens, beam_width=3):
-    sequences = [(idx, 0)]  # cada item: (tokens, log_prob acumulado)
+def beam_search(model, idx, max_new_tokens, beam_width=3, length_penalty=1.0):
+    sequences = [(idx, 0)]  # Cada item: (tokens, log_prob acumulado)
 
     for _ in range(max_new_tokens):
         all_candidates = []
@@ -72,10 +71,13 @@ def beam_search(model, idx, max_new_tokens, beam_width=3):
             for i in range(beam_width):
                 next_token = topk_indices[0, i].unsqueeze(0).unsqueeze(0)
                 new_seq = torch.cat([seq, next_token], dim=1)
-                new_score = score + topk_probs[0, i].item()
+                # Penalización por longitud (evita que los beams colapsen a respuestas muy cortas)
+                new_score = score + topk_probs[0, i].item() / (
+                    len(new_seq) ** length_penalty
+                )
                 all_candidates.append((new_seq, new_score))
 
-        # ordenar y mantener los mejores `beam_width`
+        # Ordenar y mantener los mejores `beam_width`
         sequences = sorted(all_candidates, key=lambda x: x[1], reverse=True)[
             :beam_width
         ]
